@@ -192,6 +192,40 @@ OVERALL: EQUIVALENT (with normalization/reordering)
 ------------------------------------------------------------
 ```
 
+When schemas differ, the tool shows which columns are different:
+
+```
+============================================================
+DATA COMPARISON SUMMARY (Pandas Vectorized)
+============================================================
+
+File A: sales_v1.csv (10,000 rows)
+File B: sales_v2.csv (10,000 rows)
+
+Schema:       ✗ MISMATCH
+Row Coverage: ✓ MATCH (all keys present in both)
+Values:       ✗ 245 mismatches (1.63%)
+
+------------------------------------------------------------
+OVERALL: DIFFERENT
+------------------------------------------------------------
+
+⚠ Schema differences detected:
+  Columns only in A (2):
+    - legacy_region_code
+    - old_discount_type
+  Columns only in B (3):
+    - new_region_id
+    - discount_category
+    - tax_rate
+
+⚠ 245 cell mismatches found
+  Columns with mismatches:
+    - unit_price: 128
+    - quantity: 89
+    - sales_rep: 28
+```
+
 ### Markdown Report
 
 See [docs/sample_report.md](docs/sample_report.md) for a full example.

@@ -760,7 +760,24 @@ def generate_stdout_summary(report: ComparisonReport) -> str:
     lines.append("-" * 60)
     lines.append(f"OVERALL: {report.overall_verdict}")
     lines.append("-" * 60)
-    
+
+    # Show schema differences if columns don't match
+    if not report.schema.column_names_match:
+        lines.append("")
+        lines.append(f"⚠ Schema differences detected:")
+        if report.schema.columns_only_in_a:
+            lines.append(f"  Columns only in A ({len(report.schema.columns_only_in_a)}):")
+            for col in report.schema.columns_only_in_a[:10]:
+                lines.append(f"    - {col}")
+            if len(report.schema.columns_only_in_a) > 10:
+                lines.append(f"    ... and {len(report.schema.columns_only_in_a) - 10} more")
+        if report.schema.columns_only_in_b:
+            lines.append(f"  Columns only in B ({len(report.schema.columns_only_in_b)}):")
+            for col in report.schema.columns_only_in_b[:10]:
+                lines.append(f"    - {col}")
+            if len(report.schema.columns_only_in_b) > 10:
+                lines.append(f"    ... and {len(report.schema.columns_only_in_b) - 10} more")
+
     if report.values and report.values.total_mismatch > 0:
         lines.append("")
         lines.append(f"⚠ {format_number(report.values.total_mismatch)} cell mismatches found")
@@ -929,7 +946,7 @@ Examples:
         print(generate_stdout_summary(report))
         
         output_path = config.output_file or "comparison_report.md"
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(generate_report(report))
         
         print()

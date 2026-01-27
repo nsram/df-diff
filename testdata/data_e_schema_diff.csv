@@ -1,0 +1,4 @@
+customer_id,order_date,product,qty,unit_price,discount,region,sales_rep,extra_column
+1001,2025-01-15,Widget A,10,29.99,0.1,Northeast,John Smith,new
+1002,2025-01-15,Widget B,5,49.99,0.0,Southeast,Jane Doe,new
+1003,2025-01-16,Gadget X,3,199.99,0.15,Northeast,John Smith,new
