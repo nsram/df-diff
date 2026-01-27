@@ -1,0 +1,11 @@
+customer_id,order_date,product,quantity,unit_price,discount,region,sales_rep
+1001,2025-01-15,Widget A,10,29.99,0.1,Northeast,  John Smith  
+1002,2025-01-15,Widget B,5,49.990000001,0.0,Southeast,Jane Doe
+1003,2025-01-16,Gadget X,3,199.99,0.15,Northeast,John Smith
+1004,2025-01-16,Widget A,20,29.99,0.2,West,Bob Wilson
+1005,2025-01-17,Gadget Y,1,299.99,0.0,Southeast,Jane Doe
+1006,2025-01-17,Widget C,15,39.99,0.05,  Northeast  ,John Smith
+1007,2025-01-18,Gadget X,2,199.99,0.1,West,Alice Brown
+1008,2025-01-18,Widget B,8,49.99,0.0,Southeast,Jane Doe
+1009,2025-01-19,Widget A,12,29.990000001,0.1,Northeast,John Smith
+1010,2025-01-19,Gadget Z,4,149.99,0.25,West,  Bob Wilson

@@ -1,0 +1,7 @@
+# Core dependencies (V1 and V2)
+pandas>=2.0
+numpy>=1.24
+pyarrow>=12.0  # Parquet support
+
+# V3 only
+duckdb>=0.9

@@ -1,0 +1,100 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Patterns for cells - cyan -->
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="8" height="8">
+      <circle cx="4" cy="4" r="2" fill="#38BDF8"/>
+    </pattern>
+    
+    <pattern id="hlines" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="0" y1="4" x2="8" y2="4" stroke="#38BDF8" stroke-width="2"/>
+    </pattern>
+    
+    <pattern id="vlines" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="4" y1="0" x2="4" y2="8" stroke="#38BDF8" stroke-width="2"/>
+    </pattern>
+    
+    <pattern id="diag" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="0" y1="8" x2="8" y2="0" stroke="#38BDF8" stroke-width="2"/>
+    </pattern>
+    
+    <pattern id="crosshatch" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="0" y1="4" x2="8" y2="4" stroke="#38BDF8" stroke-width="1.5"/>
+      <line x1="4" y1="0" x2="4" y2="8" stroke="#38BDF8" stroke-width="1.5"/>
+    </pattern>
+    
+    <pattern id="densedots" patternUnits="userSpaceOnUse" width="6" height="6">
+      <circle cx="3" cy="3" r="1.5" fill="#38BDF8"/>
+    </pattern>
+    
+    <!-- Patterns for diff cells - magenta/pink -->
+    <pattern id="crosshatch-diff" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="0" y1="0" x2="8" y2="8" stroke="#E879F9" stroke-width="2"/>
+      <line x1="0" y1="8" x2="8" y2="0" stroke="#E879F9" stroke-width="2"/>
+    </pattern>
+    
+    <pattern id="hlines-diff" patternUnits="userSpaceOnUse" width="8" height="8">
+      <line x1="0" y1="4" x2="8" y2="4" stroke="#E879F9" stroke-width="2"/>
+    </pattern>
+  </defs>
+  
+  <rect width="256" height="256" rx="48" fill="#0F172A"/>
+  
+  <!-- Left DataFrame -->
+  <g id="df-left">
+    <!-- Outer border -->
+    <rect x="30" y="50" width="80" height="80" rx="8" stroke="#38BDF8" stroke-width="4" fill="none"/>
+    
+    <!-- Row 1: dots, hlines, diag -->
+    <rect x="32" y="52" width="24" height="24" fill="url(#dots)"/>
+    <rect x="58" y="52" width="24" height="24" fill="url(#hlines)"/>
+    <rect x="84" y="52" width="24" height="24" fill="url(#diag)"/>
+    
+    <!-- Row 2: crosshatch, vlines, densedots -->
+    <rect x="32" y="78" width="24" height="24" fill="url(#crosshatch)"/>
+    <rect x="58" y="78" width="24" height="24" fill="url(#vlines)"/>
+    <rect x="84" y="78" width="24" height="24" fill="url(#densedots)"/>
+    
+    <!-- Row 3: hlines, densedots, vlines -->
+    <rect x="32" y="104" width="24" height="24" fill="url(#hlines)"/>
+    <rect x="58" y="104" width="24" height="24" fill="url(#densedots)"/>
+    <rect x="84" y="104" width="24" height="24" fill="url(#vlines)"/>
+    
+    <!-- Grid lines -->
+    <line x1="56" y1="50" x2="56" y2="130" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="83" y1="50" x2="83" y2="130" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="30" y1="77" x2="110" y2="77" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="30" y1="104" x2="110" y2="104" stroke="#38BDF8" stroke-width="2"/>
+  </g>
+
+  <!-- Biconditional symbol -->
+  <text x="128" y="98" text-anchor="middle" fill="#E2E8F0" style="font-family: Arial, sans-serif; font-weight: 300; font-size: 28px;">⟺</text>
+
+  <!-- Right DataFrame -->
+  <g id="df-right">
+    <!-- Outer border -->
+    <rect x="146" y="50" width="80" height="80" rx="8" stroke="#38BDF8" stroke-width="4" fill="none"/>
+    
+    <!-- Row 1: dots, hlines, DIFF (crosshatch-diff) -->
+    <rect x="148" y="52" width="24" height="24" fill="url(#dots)"/>
+    <rect x="174" y="52" width="24" height="24" fill="url(#hlines)"/>
+    <rect x="200" y="52" width="24" height="24" fill="url(#crosshatch-diff)"/>
+    
+    <!-- Row 2: crosshatch, DIFF (hlines-diff), densedots -->
+    <rect x="148" y="78" width="24" height="24" fill="url(#crosshatch)"/>
+    <rect x="174" y="78" width="24" height="24" fill="url(#hlines-diff)"/>
+    <rect x="200" y="78" width="24" height="24" fill="url(#densedots)"/>
+    
+    <!-- Row 3: hlines, densedots, vlines -->
+    <rect x="148" y="104" width="24" height="24" fill="url(#hlines)"/>
+    <rect x="174" y="104" width="24" height="24" fill="url(#densedots)"/>
+    <rect x="200" y="104" width="24" height="24" fill="url(#vlines)"/>
+    
+    <!-- Grid lines -->
+    <line x1="172" y1="50" x2="172" y2="130" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="199" y1="50" x2="199" y2="130" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="146" y1="77" x2="226" y2="77" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="146" y1="104" x2="226" y2="104" stroke="#38BDF8" stroke-width="2"/>
+  </g>
+
+  <text x="128" y="175" text-anchor="middle" fill="#94A3B8" style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-weight: 700; font-size: 32px; letter-spacing: 0.05em;">df-diff</text>
+</svg>
