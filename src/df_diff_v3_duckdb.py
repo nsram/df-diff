@@ -395,7 +395,9 @@ def compare_values_duckdb(meta_a: FileMetadata, meta_b: FileMetadata, key_column
             alias = make_col_alias(col)
             
             str_a, str_b = f'CAST({col_a} AS VARCHAR)', f'CAST({col_b} AS VARCHAR)'
-            
+            exact_eq = f'{str_a} IS NOT DISTINCT FROM {str_b}'
+            not_exact = f'{str_a} IS DISTINCT FROM {str_b}'
+
             if config.strip_whitespace:
                 trim_a, trim_b = f'TRIM({str_a})', f'TRIM({str_b})'
             else:
@@ -411,12 +413,12 @@ def compare_values_duckdb(meta_a: FileMetadata, meta_b: FileMetadata, key_column
             tol_expr = f"({num_a} IS NOT NULL AND {num_b} IS NOT NULL AND ABS({num_a} - {num_b}) <= {config.numeric_atol} + {config.numeric_rtol} * ABS({num_b}))"
             
             agg_parts.append(f"""
-                SUM(CASE WHEN {str_a} = {str_b} THEN 1 ELSE 0 END) AS exact_{alias},
-                SUM(CASE WHEN {str_a} != {str_b} AND {null_a} AND {null_b} THEN 1 ELSE 0 END) AS null_{alias},
-                SUM(CASE WHEN {str_a} != {str_b} AND NOT ({null_a} AND {null_b}) AND NOT {null_a} AND NOT {null_b} AND {trim_a} = {trim_b} THEN 1 ELSE 0 END) AS trim_{alias},
-                SUM(CASE WHEN {str_a} != {str_b} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN 1 ELSE 0 END) AS numeric_{alias},
-                MAX(CASE WHEN {str_a} != {str_b} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN ABS({num_a} - {num_b}) END) AS maxdelta_{alias},
-                AVG(CASE WHEN {str_a} != {str_b} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN ABS({num_a} - {num_b}) END) AS meandelta_{alias}
+                SUM(CASE WHEN {exact_eq} THEN 1 ELSE 0 END) AS exact_{alias},
+                SUM(CASE WHEN {not_exact} AND {null_a} AND {null_b} THEN 1 ELSE 0 END) AS null_{alias},
+                SUM(CASE WHEN {not_exact} AND NOT ({null_a} AND {null_b}) AND NOT {null_a} AND NOT {null_b} AND {trim_a} = {trim_b} THEN 1 ELSE 0 END) AS trim_{alias},
+                SUM(CASE WHEN {not_exact} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN 1 ELSE 0 END) AS numeric_{alias},
+                MAX(CASE WHEN {not_exact} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN ABS({num_a} - {num_b}) END) AS maxdelta_{alias},
+                AVG(CASE WHEN {not_exact} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND {tol_expr} THEN ABS({num_a} - {num_b}) END) AS meandelta_{alias}
             """)
         
         agg_sql = ", ".join(agg_parts)
@@ -442,20 +444,21 @@ def compare_values_duckdb(meta_a: FileMetadata, meta_b: FileMetadata, key_column
                 col_a = escape_identifier(f"{col}_A")
                 col_b = escape_identifier(f"{col}_B")
                 str_a, str_b = f'CAST({col_a} AS VARCHAR)', f'CAST({col_b} AS VARCHAR)'
-                
+                not_exact = f'{str_a} IS DISTINCT FROM {str_b}'
+
                 if config.strip_whitespace:
                     trim_a, trim_b = f'TRIM({str_a})', f'TRIM({str_b})'
                 else:
                     trim_a, trim_b = str_a, str_b
                 if not config.case_sensitive:
                     trim_a, trim_b = f'LOWER({trim_a})', f'LOWER({trim_b})'
-                
+
                 null_a = f"({col_a} IS NULL OR TRIM(CAST({col_a} AS VARCHAR)) IN ({null_values_sql}))"
                 null_b = f"({col_b} IS NULL OR TRIM(CAST({col_b} AS VARCHAR)) IN ({null_values_sql}))"
                 num_a, num_b = f'TRY_CAST({trim_a} AS DOUBLE)', f'TRY_CAST({trim_b} AS DOUBLE)'
                 tol_expr = f"({num_a} IS NOT NULL AND {num_b} IS NOT NULL AND ABS({num_a} - {num_b}) <= {config.numeric_atol} + {config.numeric_rtol} * ABS({num_b}))"
-                
-                mismatch_cond = f"{str_a} != {str_b} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND NOT {tol_expr}"
+
+                mismatch_cond = f"{not_exact} AND NOT ({null_a} AND {null_b}) AND ({null_a} OR {null_b} OR {trim_a} != {trim_b}) AND NOT {tol_expr}"
                 
                 samples = con.execute(f"""
                     SELECT {key_expr} AS key_val, {str_a} AS val_a, {str_b} AS val_b

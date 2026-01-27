@@ -463,6 +463,49 @@ FROM (
                      └──────────────────────────────────────┘
 ```
 
+### V3: SQL NULL Handling
+
+SQL has **three-valued logic**: expressions evaluate to TRUE, FALSE, or **NULL**. Any comparison involving NULL returns NULL, not TRUE or FALSE:
+
+```sql
+NULL = NULL   → NULL  (not TRUE!)
+NULL != NULL  → NULL  (not TRUE!)
+NULL = 'hello' → NULL
+NULL != 'hello' → NULL
+```
+
+This matters because V3's comparison cascade uses SQL `CASE WHEN` expressions. A naive approach fails silently:
+
+```sql
+-- BROKEN: if either value is NULL, this returns 0 (not 1)
+SUM(CASE WHEN CAST(a AS VARCHAR) = CAST(b AS VARCHAR) THEN 1 ELSE 0 END)
+
+-- Both sides are NULL → CAST(NULL AS VARCHAR) = CAST(NULL AS VARCHAR) → NULL → ELSE 0
+-- The row is not counted as a match OR a mismatch — it just vanishes.
+```
+
+V3 uses `IS NOT DISTINCT FROM` / `IS DISTINCT FROM`, which are NULL-safe comparison operators that treat NULL as equal to NULL:
+
+```sql
+NULL IS NOT DISTINCT FROM NULL    → TRUE   (NULL equals NULL)
+NULL IS DISTINCT FROM NULL        → FALSE
+NULL IS NOT DISTINCT FROM 'hello' → FALSE  (NULL differs from a value)
+NULL IS DISTINCT FROM 'hello'     → TRUE
+
+-- V3's actual exact-match check:
+SUM(CASE WHEN CAST(a AS VARCHAR) IS NOT DISTINCT FROM CAST(b AS VARCHAR) THEN 1 ELSE 0 END)
+```
+
+**Why V1/V2 don't have this problem:** Pandas converts all values to Python strings before comparison (`series.astype(str)`), which turns `pd.NA` into the literal string `"<NA>"`. After that, `==` and `!=` always return True/False — Python doesn't have three-valued logic.
+
+| Expression | Python | SQL |
+|------------|--------|-----|
+| `NULL == NULL` | `True` (both become `"<NA>"`) | `NULL` (unknown) |
+| `NULL != NULL` | `False` | `NULL` (unknown) |
+| `NULL == "hello"` | `False` | `NULL` (unknown) |
+
+This is a general hazard when porting pandas logic to SQL: any column that can contain NULL values will silently break boolean conditions unless you use NULL-safe operators.
+
 ### Memory Comparison
 
 ```
