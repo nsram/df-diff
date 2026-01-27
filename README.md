@@ -169,6 +169,7 @@ python src/df_diff_v3_duckdb.py large_a.parquet large_b.parquet \
 | `--ignore-case` | Case-insensitive string comparison |
 | `--no-strip` | Disable whitespace trimming |
 | `--max-samples` | Max sample mismatches per column (default: `10`) |
+| `--allow-duplicate-keys` | Continue even if primary keys are not unique |
 
 ## Output
 

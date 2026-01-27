@@ -43,6 +43,7 @@ class ComparisonConfig:
     output_file: str | None = None
     max_sample_diffs: int = 10
     column_batch_size: int = 50  # Batch columns to reduce I/O passes
+    allow_duplicate_keys: bool = False
 
 
 # =============================================================================
@@ -693,6 +694,20 @@ def run_comparison(config: ComparisonConfig) -> ComparisonReport:
     
     print("Analyzing primary keys...")
     keys = analyze_keys(meta_a, meta_b, config.primary_key, config.max_sample_diffs, con)
+    
+    # Check for duplicate keys
+    if not keys.unique_in_a or not keys.unique_in_b:
+        if not config.allow_duplicate_keys:
+            msg = "Duplicate keys found: "
+            if not keys.unique_in_a:
+                msg += f"File A has {keys.duplicate_count_a} duplicates. "
+            if not keys.unique_in_b:
+                msg += f"File B has {keys.duplicate_count_b} duplicates. "
+            msg += "Use --allow-duplicate-keys to proceed anyway."
+            raise ValueError(msg)
+        else:
+            print(f"  ⚠ Warning: Duplicate keys found (proceeding due to --allow-duplicate-keys)")
+    
     print(f"  Keys in both: {format_number(keys.keys_in_both)}")
     
     values = None
@@ -763,6 +778,8 @@ Examples:
     parser.add_argument("--ignore-case", action="store_true", help="Case-insensitive comparison")
     parser.add_argument("--max-samples", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=50, help="Columns per batch (default: 50)")
+    parser.add_argument("--allow-duplicate-keys", action="store_true",
+                        help="Continue even if primary keys are not unique")
     
     args = parser.parse_args()
     
@@ -771,7 +788,8 @@ Examples:
         numeric_atol=args.numeric_tolerance, numeric_rtol=args.numeric_tolerance,
         strip_whitespace=not args.no_strip, case_sensitive=not args.ignore_case,
         output_file=args.output, max_sample_diffs=args.max_samples,
-        column_batch_size=args.batch_size
+        column_batch_size=args.batch_size,
+        allow_duplicate_keys=args.allow_duplicate_keys
     )
     
     try:

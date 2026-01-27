@@ -50,6 +50,9 @@ class ComparisonConfig:
     # Output
     output_file: str | None = None
     max_sample_diffs: int = 10
+    
+    # Key handling
+    allow_duplicate_keys: bool = False
 
 
 # =============================================================================
@@ -796,6 +799,20 @@ def run_comparison(config: ComparisonConfig) -> ComparisonReport:
     # Key analysis
     print("Analyzing primary keys...")
     keys = analyze_keys(df_a, df_b, config.primary_key, config.max_sample_diffs)
+    
+    # Check for duplicate keys
+    if not keys.unique_in_a or not keys.unique_in_b:
+        if not config.allow_duplicate_keys:
+            msg = "Duplicate keys found: "
+            if not keys.unique_in_a:
+                msg += f"File A has {keys.duplicate_count_a} duplicates. "
+            if not keys.unique_in_b:
+                msg += f"File B has {keys.duplicate_count_b} duplicates. "
+            msg += "Use --allow-duplicate-keys to proceed anyway."
+            raise ValueError(msg)
+        else:
+            print(f"  ⚠ Warning: Duplicate keys found (proceeding due to --allow-duplicate-keys)")
+    
     print(f"  Keys in both: {format_number(keys.keys_in_both)}")
     
     # Value comparison
@@ -887,6 +904,8 @@ Examples:
                         help="Case-insensitive string comparison")
     parser.add_argument("--max-samples", type=int, default=10,
                         help="Maximum sample differences to show per column (default: 10)")
+    parser.add_argument("--allow-duplicate-keys", action="store_true",
+                        help="Continue even if primary keys are not unique")
     
     args = parser.parse_args()
     
@@ -899,7 +918,8 @@ Examples:
         strip_whitespace=not args.no_strip,
         case_sensitive=not args.ignore_case,
         output_file=args.output,
-        max_sample_diffs=args.max_samples
+        max_sample_diffs=args.max_samples,
+        allow_duplicate_keys=args.allow_duplicate_keys
     )
     
     try:
