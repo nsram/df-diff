@@ -373,6 +373,54 @@ All three versions follow the same comparison cascade:
                                               └──────────┘    └──────────┘
 ```
 
+### Special Float Handling (Inf, NaN)
+
+The numeric tolerance step (`|num(A) - num(B)| < tolerance?`) has an IEEE 754 edge case: `inf - inf = NaN`, and any comparison with `NaN` returns `False`. So two cells that both contain infinity would fail the tolerance check and be misclassified as mismatches.
+
+All three versions handle this with an explicit check **after** the tolerance step:
+
+```
+                      ┌───────────────────────┐
+                      │  |num(A) - num(B)|    │
+                      │     < tolerance?      │
+                      └───────────┬───────────┘
+                             yes │ no
+                         ┌───────┴──────────────────┐
+                         ▼                          ▼
+                  ┌──────────┐          ┌───────────────────────┐
+                  │ NUMERIC  │          │  Both Inf same sign?  │
+                  │  MATCH   │          │  Both NaN?            │
+                  └──────────┘          └───────────┬───────────┘
+                                               yes │ no
+                                           ┌───────┴───────┐
+                                           ▼               ▼
+                                    ┌──────────┐    ┌──────────┐
+                                    │ NUMERIC  │    │ MISMATCH │
+                                    │  MATCH   │    │          │
+                                    └──────────┘    └──────────┘
+```
+
+Specifically:
+- **Inf-Inf (same sign):** `+inf == +inf` and `-inf == -inf` are matches. `+inf` vs `-inf` is a mismatch.
+- **NaN-NaN:** Both values parse as `float('nan')` — treated as a match. This only applies to case variants of `"nan"` (e.g., `"NaN"` vs `"NAN"`). Common NaN strings like `"nan"` and `"NaN"` are already caught by the null normalization step (they're in the null values list), so this step catches only unusual casing that the null list misses.
+
+### Parquet Null Normalization
+
+CSV and Parquet files handle null values differently at load time:
+
+```
+CSV loading:
+  pd.read_csv(file, dtype=str, na_values=["", "NA", "NULL", "None", ...])
+  → All null-like strings become pd.NA at read time
+
+Parquet loading:
+  pd.read_parquet(file) → native types with native NULLs
+  → astype(str)         → NULL becomes "nan"/"None"/"<NA>" depending on type
+  → replace(null_map)   → All null-like strings become pd.NA
+```
+
+The Parquet loader normalizes the **same set** of null representations as the CSV loader: `""`, `"NA"`, `"N/A"`, `"NULL"`, `"None"`, `"NaN"`, `"nan"`, `"<NA>"`, `"null"`, `"NONE"`. This ensures consistent behavior when comparing a CSV file against a Parquet export of the same data — the same values are treated as null regardless of file format.
+
 ### V1: Row-by-Row (The Naive Approach)
 
 ```python

@@ -236,8 +236,10 @@ def load_file(filepath: str, null_values: list[str]) -> pd.DataFrame:
         df = pd.read_csv(filepath, dtype=str, na_values=null_values, keep_default_na=False)
     elif fmt == 'parquet':
         df = pd.read_parquet(filepath)
+        # Normalize all null representations to pd.NA (matching CSV na_values behavior)
+        null_str_map = {v: pd.NA for v in null_values}
         for col in df.columns:
-            df[col] = df[col].astype(str).replace({'nan': pd.NA, 'None': pd.NA})
+            df[col] = df[col].astype(str).replace(null_str_map)
     else:
         raise ValueError(f"Unsupported file format: {fmt}")
     
@@ -472,6 +474,27 @@ def compare_values(
             numeric_max_delta = None
             numeric_mean_delta = None
         
+        # =================================================================
+        # STEP 4b: Special float values (Inf, NaN)
+        # =================================================================
+        # inf - inf = nan in IEEE 754, failing the tolerance check above.
+        # NaN strings not in null_values_set are excluded by notna() above.
+        # Handle both explicitly, matching V1's try_numeric_compare.
+        remaining4 = remaining3 & ~numeric_match_mask
+
+        num_a_safe = num_a.fillna(0)
+        num_b_safe = num_b.fillna(0)
+        both_inf_same_sign = (remaining4
+                              & np.isinf(num_a_safe) & np.isinf(num_b_safe)
+                              & (np.sign(num_a_safe) == np.sign(num_b_safe)))
+
+        both_nan_str = (remaining4
+                        & trimmed_a.str.lower().eq('nan')
+                        & trimmed_b.str.lower().eq('nan'))
+
+        special_float_mask = both_inf_same_sign | both_nan_str
+        numeric_match_mask = numeric_match_mask | special_float_mask
+
         # =================================================================
         # STEP 5: Everything else is a mismatch
         # =================================================================
