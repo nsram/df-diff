@@ -305,6 +305,27 @@ See [docs/how_it_works.md](docs/how_it_works.md) for a detailed explanation of:
 - Why V3 is faster than V2 for large data
 - Memory usage patterns
 
+## Zero-Width Character Handling
+
+All three versions automatically strip invisible zero-width Unicode characters from data values at load time. These characters are visually identical to empty strings but cause byte-level mismatches, leading to false positives during comparison.
+
+| Character | Code Point | Name |
+|-----------|-----------|------|
+| `\0` | U+0000 | NULL |
+| | U+200B | Zero-width space |
+| | U+200C | Zero-width non-joiner |
+| | U+200D | Zero-width joiner |
+| | U+FEFF | BOM / Zero-width no-break space |
+| | U+00AD | Soft hyphen |
+| | U+2060 | Word joiner |
+| | U+180E | Mongolian vowel separator |
+
+Stripping happens before any comparison logic runs, so both key matching and value comparison operate on clean data. This is transparent -- no configuration needed.
+
+**V1/V2 (Pandas):** Uses `re.compile` with `str.replace()` in `load_file()` to strip characters from every column after loading.
+
+**V3 (DuckDB):** Uses `regexp_replace()` in SQL expressions when creating the `matched` view, stripping characters from key columns (for joining) and data columns (for comparison).
+
 ## Limitations
 
 - **Headers required** — First row is always treated as column names. A warning is shown if all column names appear to be numeric (suggesting the first row might be data).

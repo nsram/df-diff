@@ -146,6 +146,14 @@ def make_col_alias(col: str) -> str:
     return col.replace("'", "").replace('"', "").replace(" ", "_")
 
 
+_ZERO_WIDTH_RE_SQL = r'[\x{0}\x{200b}\x{200c}\x{200d}\x{feff}\x{ad}\x{2060}\x{180e}]'
+
+
+def strip_zw(expr: str) -> str:
+    """Wrap a SQL expression to strip zero-width Unicode characters and cast to VARCHAR."""
+    return f"regexp_replace(CAST({expr} AS VARCHAR), '{_ZERO_WIDTH_RE_SQL}', '', 'g')"
+
+
 def validate_column_names(columns: list[str], filepath: str) -> None:
     """Check column names for potential issues and report warnings."""
     import re
@@ -314,13 +322,14 @@ def analyze_keys(meta_a: FileMetadata, meta_b: FileMetadata, key_columns: list[s
     
     read_a, read_b = get_duckdb_read_expr(meta_a.path), get_duckdb_read_expr(meta_b.path)
     key_cols_sql = ", ".join(escape_identifier(k) for k in key_columns)
-    key_cols_cast = ", ".join(f'CAST({escape_identifier(k)} AS VARCHAR)' for k in key_columns)
-    
+    key_cols_cast = ", ".join(strip_zw(escape_identifier(k)) for k in key_columns)
+
     dup_a = con.execute(f"SELECT COUNT(*) - COUNT(DISTINCT ({key_cols_cast})) FROM {read_a}").fetchone()[0]
     dup_b = con.execute(f"SELECT COUNT(*) - COUNT(DISTINCT ({key_cols_cast})) FROM {read_b}").fetchone()[0]
-    
-    con.execute(f"CREATE OR REPLACE TEMP VIEW keys_a AS SELECT DISTINCT {key_cols_sql} FROM {read_a}")
-    con.execute(f"CREATE OR REPLACE TEMP VIEW keys_b AS SELECT DISTINCT {key_cols_sql} FROM {read_b}")
+
+    key_cols_stripped = ", ".join(f'{strip_zw(escape_identifier(k))} AS {escape_identifier(k)}' for k in key_columns)
+    con.execute(f"CREATE OR REPLACE TEMP VIEW keys_a AS SELECT DISTINCT {key_cols_stripped} FROM {read_a}")
+    con.execute(f"CREATE OR REPLACE TEMP VIEW keys_b AS SELECT DISTINCT {key_cols_stripped} FROM {read_b}")
     
     join_cond = ' AND '.join(f'a.{escape_identifier(k)} = b.{escape_identifier(k)}' for k in key_columns)
     
@@ -350,14 +359,21 @@ def compare_values_duckdb(meta_a: FileMetadata, meta_b: FileMetadata, key_column
     """Compare values using DuckDB with batched column aggregation."""
     
     read_a, read_b = get_duckdb_read_expr(meta_a.path), get_duckdb_read_expr(meta_b.path)
-    join_cond = ' AND '.join(f'a.{escape_identifier(k)} = b.{escape_identifier(k)}' for k in key_columns)
-    key_cols_sql = ", ".join(f'a.{escape_identifier(k)} AS {escape_identifier(k)}' for k in key_columns)
-    
+    join_cond = ' AND '.join(
+        f'{strip_zw(f"a.{escape_identifier(k)}")} = {strip_zw(f"b.{escape_identifier(k)}")}'
+        for k in key_columns
+    )
+    key_cols_sql = ", ".join(
+        f'{strip_zw(f"a.{escape_identifier(k)}")} AS {escape_identifier(k)}'
+        for k in key_columns
+    )
+
     col_select = ", ".join(
-        f'a.{escape_identifier(c)} AS {escape_identifier(c + "_A")}, b.{escape_identifier(c)} AS {escape_identifier(c + "_B")}'
+        f'{strip_zw(f"a.{escape_identifier(c)}")} AS {escape_identifier(c + "_A")}, '
+        f'{strip_zw(f"b.{escape_identifier(c)}")} AS {escape_identifier(c + "_B")}'
         for c in columns_to_compare
     )
-    
+
     con.execute(f"""
         CREATE OR REPLACE TEMP VIEW matched AS
         SELECT {key_cols_sql}, {col_select}

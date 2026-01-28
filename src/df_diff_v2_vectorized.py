@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -21,6 +22,9 @@ from typing import Any
 
 import pandas as pd
 import numpy as np
+
+# Regex matching zero-width Unicode characters that cause false mismatches
+_ZERO_WIDTH_RE = re.compile('[\u0000\u200b\u200c\u200d\ufeff\u00ad\u2060\u180e]')
 
 
 # =============================================================================
@@ -248,7 +252,11 @@ def load_file(filepath: str, null_values: list[str]) -> pd.DataFrame:
     
     # Validate column names
     validate_column_names(list(df.columns), filepath)
-    
+
+    # Strip zero-width Unicode characters from all values
+    for col in df.columns:
+        df[col] = df[col].str.replace(_ZERO_WIDTH_RE, '', regex=True)
+
     return df
 
 
